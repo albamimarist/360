@@ -29,7 +29,7 @@
         .progress-bar { height: 100%; width: 0%; background: #28a745; transition: width 0.3s; }
 
         .modal { display: none; position: fixed; z-index: 1000; inset: 0; background: rgba(0,0,0,0.8); overflow: auto; }
-        .modal-content { background: #1e2a44; margin: 5% auto; padding: 1.5cm; width: 90%; max-width: 1000px; border-radius: 12px; max-height: 80vh; overflow-y: auto; }
+        .modal-content { background: #1e2a44; margin: 5% auto; padding: 1.5cm; width: 90%; max-width: 100035px; border-radius: 12px; max-height: 80vh; overflow-y: auto; }
         .close { float: right; font-size: 2em; cursor: pointer; color: #aaa; }
         .close:hover { color: white; }
 
@@ -41,10 +41,10 @@
         .modal-btn:hover { background: rgba(255,255,255,0.4); }
         .page-modal iframe { width: 100%; height: calc(100% - 50px); border: none; }
 
-        .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1cm; margin-top: 1cm; }
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1cm; margin-top: 1cm; }
         .setting-item { background: rgba(255,255,255,0.1); padding: 0.8cm; border-radius: 8px; text-align: center; }
-        .setting-item input[type="text"], .setting-item button { width: 100%; margin: 0.3cm 0; padding: 0.4cm; border: none; border-radius: 4px; }
-        .setting-item input[type="text"] { background: #333; color: white; }
+        .setting-item select, .setting-item input[type="text"], .setting-item button { width: 100%; margin: 0.3cm 0; padding: 0.4cm; border: none; border-radius: 4px; }
+        .setting-item select, .setting-item input[type="text"] { background: #333; color: white; }
         .setting-item button { background: #0066cc; color: white; cursor: pointer; }
         .setting-item button:hover { background: #0088ff; }
 
@@ -96,6 +96,7 @@
         const TOTAL_CELLS = 160;
         const SETTINGS_PATH = 'settings/360_settings.json';
         let settings = [];
+        let serverFolders = [];
 
         function getDefaultSettings() {
             return Array.from({ length: TOTAL_CELLS }, (_, i) => ({
@@ -134,7 +135,6 @@
 
                 const dropArea = cell.querySelector('.upload-area');
                 const progressBar = cell.querySelector('.progress-bar');
-
                 setupDropZone(dropArea, progressBar, i, cell);
 
                 cell.onclick = e => {
@@ -148,10 +148,7 @@
 
         function setupDropZone(area, progressBar, index, cell) {
             ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
-                area.addEventListener(event, e => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
+                area.addEventListener(event, e => { e.preventDefault(); e.stopPropagation(); });
             });
 
             area.addEventListener('dragenter', () => area.classList.add('dragover'));
@@ -166,9 +163,7 @@
                 const input = document.createElement('input');
                 input.type = 'file';
                 input.webkitdirectory = true;
-                input.onchange = e => {
-                    if (e.target.files.length) uploadFolder(e.target.files, index, progressBar, cell);
-                };
+                input.onchange = e => { if (e.target.files.length) uploadFolder(e.target.files, index, progressBar, cell); };
                 input.click();
             };
         }
@@ -188,26 +183,17 @@
             try {
                 const xhr = new XMLHttpRequest();
                 xhr.open('POST', 'upload.php', true);
-
                 xhr.upload.onprogress = e => {
-                    if (e.lengthComputable) {
-                        const percent = (e.loaded / e.total) * 100;
-                        progressBar.style.width = percent + '%';
-                    }
+                    if (e.lengthComputable) progressBar.style.width = (e.loaded / e.total) * 100 + '%';
                 };
 
                 xhr.onload = () => {
                     const data = JSON.parse(xhr.responseText);
                     if (data.success) {
-                        // Sadece klasör adını kaydet
                         settings[index].folder = data.folder;
-                        cell.innerHTML = cell.innerHTML.replace(
-                            /<div class="folder-name">.*<\/div>/, 
-                            `<div class="folder-name">${data.folder}</div>`
-                        );
-                        if (!cell.querySelector('.folder-name')) {
-                            cell.insertAdjacentHTML('beforeend', `<div class="folder-name">${data.folder}</div>`);
-                        }
+                        const folderDiv = cell.querySelector('.folder-name');
+                        if (folderDiv) folderDiv.innerText = data.folder;
+                        else cell.insertAdjacentHTML('beforeend', `<div class="folder-name">${data.folder}</div>`);
 
                         saveToServer();
                         progressBar.style.width = '100%';
@@ -215,6 +201,8 @@
                             progressBar.style.width = '0%';
                             cell.querySelector('.upload-area').innerText = 'Sürükle veya Klasör Seç';
                         }, 1000);
+
+                        loadServerFolders(); // Yenile
                     } else {
                         alert('Hata: ' + (data.errors?.join(', ') || 'Bilinmeyen'));
                     }
@@ -226,7 +214,107 @@
             }
         }
 
-        // Sayfa Modal
+        // Sunucudaki klasörleri yükle
+        async function loadServerFolders() {
+            try {
+                const res = await fetch('list_pages.php');
+                if (res.ok) {
+                    serverFolders = await res.json();
+                }
+            } catch (e) { console.error(e); }
+        }
+
+        // Ayarlar Modal
+        async function renderSettingsModal() {
+            await loadServerFolders();
+            const container = document.getElementById('settingsGrid');
+            container.innerHTML = '';
+
+            settings.forEach((item, i) => {
+                const div = document.createElement('div');
+                div.className = 'setting-item';
+
+                const folderOptions = serverFolders.map(f => 
+                    `<option value="${f.name}" ${item.folder === f.name ? 'selected' : ''}>${f.name}</option>`
+                ).join('');
+
+                const folder = serverFolders.find(f => f.name === item.folder) || { images: [], html: [] };
+
+                const imageOptions = folder.images.map(img => 
+                    `<option value="pages/${img}" ${item.image === `pages/${img}` ? 'selected' : ''}>${img.split('/').pop()}</option>`
+                ).join('');
+
+                const htmlOptions = folder.html.map(html => 
+                    `<option value="pages/${html}" ${item.url === `pages/${html}` ? 'selected' : ''}>${html.split('/').pop()}</option>`
+                ).join('');
+
+                div.innerHTML = `
+                    <div style="font-weight:bold; color:#a0d8ff;">#${item.id}</div>
+                    <select id="folder${i}" ${folderOptions ? '' : 'disabled'}>
+                        <option value="">— Klasör Seç —</option>
+                        ${folderOptions}
+                    </select>
+                    <select id="thumb${i}" ${imageOptions ? '' : 'disabled'}>
+                        <option value="">— Thumbnail Seç —</option>
+                        ${imageOptions}
+                    </select>
+                    <select id="page${i}" ${htmlOptions ? '' : 'disabled'}>
+                        <option value="">— HTML Sayfa Seç —</option>
+                        ${htmlOptions}
+                    </select>
+                    <input type="text" placeholder="Panorama Adı" value="${item.title}" id="title${i}">
+                    <button>Kaydet</button>
+                `;
+
+                // Klasör değişince thumbnail ve sayfa yenile
+                const folderSelect = div.querySelector(`#folder${i}`);
+                folderSelect.onchange = () => updateFolderOptions(i, folderSelect.value);
+
+                div.querySelector('button').onclick = () => {
+                    const selectedFolder = folderSelect.value;
+                    const thumb = div.querySelector(`#thumb${i}`).value;
+                    const page = div.querySelector(`#page${i}`).value;
+                    const title = div.querySelector(`#title${i}`).value.trim() || `Panorama ${item.id}`;
+
+                    if (!selectedFolder || !thumb || !page) {
+                        alert('Lütfen klasör, görsel ve sayfa seçin!');
+                        return;
+                    }
+
+                    settings[i] = {
+                        id: item.id,
+                        image: thumb,
+                        title: title,
+                        url: page,
+                        folder: selectedFolder
+                    };
+
+                    saveToServer();
+                    renderGrid();
+                    alert(`#${item.id} kaydedildi!`);
+                };
+
+                container.appendChild(div);
+            });
+        }
+
+        function updateFolderOptions(index, folderName) {
+            const folder = serverFolders.find(f => f.name === folderName);
+            if (!folder) return;
+
+            const thumbSelect = document.getElementById(`thumb${index}`);
+            const pageSelect = document.getElementById(`page${index}`);
+
+            thumbSelect.innerHTML = '<option value="">— Thumbnail Seç —</option>' + 
+                folder.images.map(img => `<option value="pages/${img}">${img.split('/').pop()}</option>`).join('');
+            thumbSelect.disabled = false;
+
+            pageSelect.innerHTML = '<option value="">— HTML Sayfa Seç —</option>' + 
+                folder.html.map(html => `<option value="pages/${html}">${html.split('/').pop()}</option>`).join('');
+            pageSelect.disabled = false;
+        }
+
+        // Modal kontrolleri (aynı)
         const pageModal = document.getElementById('pageModal');
         const pageIframe = document.getElementById('pageIframe');
         const modalTitle = document.getElementById('modalTitle');
@@ -266,10 +354,9 @@
             document.getElementById('fullscreenBtn').innerHTML = document.fullscreenElement ? 'O' : 'T';
         });
 
-        // Ayarlar Modal
         const modal = document.getElementById('settingsModal');
-        document.getElementById('settingsBtn').onclick = () => {
-            renderSettingsModal();
+        document.getElementById('settingsBtn').onclick = async () => {
+            await renderSettingsModal();
             modal.style.display = 'block';
         };
         modal.querySelector('.close').onclick = () => modal.style.display = 'none';
@@ -277,35 +364,6 @@
             if (e.target === modal) modal.style.display = 'none';
             if (e.target === pageModal && !isMaximized) closePageModal();
         };
-
-        function renderSettingsModal() {
-            const container = document.getElementById('settingsGrid');
-            container.innerHTML = '';
-            settings.forEach((item, i) => {
-                const div = document.createElement('div');
-                div.className = 'setting-item';
-
-                div.innerHTML = `
-                    <div style="font-weight:bold; color:#a0d8ff;">#${item.id}</div>
-                    <input type="text" placeholder="Görsel Yolu (örn: pages/klasor/resim.jpg)" value="${item.image}" id="img${i}">
-                    <input type="text" placeholder="Panorama Adı" value="${item.title}" id="title${i}">
-                    <input type="text" placeholder="Sayfa Yolu (örn: pages/klasor/index.html)" value="${item.url}" id="url${i}">
-                    ${item.folder ? `<div style="color:#a0d8ff; font-size:0.8em; margin:0.3cm 0;">Yüklü Klasör: <strong>${item.folder}</strong></div>` : ''}
-                    <button>Kaydet</button>
-                `;
-
-                div.querySelector('button').onclick = () => {
-                    settings[i].image = document.getElementById(`img${i}`).value.trim() || 'assets/360.png';
-                    settings[i].title = document.getElementById(`title${i}`).value.trim() || `Panorama ${item.id}`;
-                    settings[i].url = document.getElementById(`url${i}`).value.trim() || 'pages/placeholder.html';
-                    saveToServer();
-                    renderGrid();
-                    alert(`#${item.id} kaydedildi!`);
-                };
-
-                container.appendChild(div);
-            });
-        }
 
         // Sunucu & Local
         async function loadFromServer() {

@@ -2,7 +2,7 @@
 header('Content-Type: application/json');
 
 $uploadDir = 'pages/';
-$maxSize = 50 * 1024 * 1024; // 50MB
+$maxSize = 50 * 1024 * 1024;
 $allowedTypes = ['image/jpeg','image/png','image/jpg','text/html','application/json','text/javascript','text/css'];
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['files'])) {
