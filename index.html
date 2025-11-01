@@ -5,216 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>360 Panorama Galerisi</title>
     <style>
-        * { box-sizing: border-box; }
-        body {
-            background-color: #18255c;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            color: white;
-        }
-        .header {
-            height: 2cm;
-            background-color: black;
-            display: flex;
-            align-items: center;
-            padding: 0 1cm;
-            position: relative;
-        }
-        .settings-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.5em;
-            cursor: pointer;
-            margin-right: 1cm;
-            padding: 0.2cm;
-        }
-        .settings-btn:hover { opacity: 0.7; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: #18255c; font-family: 'Segoe UI', sans-serif; color: white; }
+        .header { height: 2cm; background: black; display: flex; align-items: center; padding: 0 1cm; }
+        .settings-btn { background: none; border: none; color: white; font-size: 1.5em; cursor: pointer; margin-right: 1cm; }
         .header-left { font-size: 1.5em; font-weight: bold; flex-grow: 1; }
         .header-right { font-size: 1.2em; }
 
-        .grid-container {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            grid-gap: 0.5cm;
-            padding: 1cm;
-        }
+        .grid-container { display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5cm; padding: 1cm; }
         .grid-cell {
-            background-color: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 0.5cm;
-            text-align: center;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            transition: transform 0.2s;
-            cursor: pointer;
+            background: rgba(255,255,255,0.1); border-radius: 8px; padding: 0.5cm; text-align: center;
+            display: flex; flex-direction: column; justify-content: space-between; cursor: pointer;
+            position: relative; transition: 0.2s; border: 2px dashed #555;
         }
         .grid-cell:hover { transform: scale(1.02); }
-        .grid-cell img {
-            width: 100%;
-            height: 120px;
-            object-fit: cover;
-            border-radius: 6px;
-        }
+        .grid-cell.dropzone { border-color: #00ff88; background: rgba(0,255,136,0.1); }
+        .grid-cell img { width: 100%; height: 120px; object-fit: cover; border-radius: 6px; }
         .cell-number { font-weight: bold; color: #a0d8ff; margin: 0.3cm 0; }
-        .cell-title { font-size: 0.9em; margin: 0.2cm 0; color: #ffdd88; }
-        .share-button {
-            padding: 0.25cm 0.5cm;
-            background-color: #333;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85em;
-        }
-        .share-button:hover { background-color: #555; }
-        .url-display {
-            margin-top: 0.3cm;
-            background-color: #222;
-            padding: 0.2cm;
-            border-radius: 4px;
-            font-size: 0.75em;
-            word-break: break-all;
-            cursor: pointer;
-            color: #00ffcc;
-        }
+        .cell-title { font-size: 0.9em; color: #ffdd88; }
+        .folder-name { font-size: 0.8em; color: #a0d8ff; margin-top: 0.2cm; word-break: break-all; }
+        .upload-area { padding: 0.5cm; font-size: 0.85em; color: #ccc; }
+        .progress-container { height: 6px; background: #333; border-radius: 3px; overflow: hidden; margin: 0.3cm 0; }
+        .progress-bar { height: 100%; width: 0%; background: #28a745; transition: width 0.3s; }
 
-        /* Modal (Ayarlar) */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0; top: 0;
-            width: 100%; height: 100%;
-            background-color: rgba(0,0,0,0.8);
-            overflow: auto;
-        }
-        .modal-content {
-            background-color: #1e2a44;
-            margin: 5% auto;
-            padding: 1.5cm;
-            width: 90%;
-            max-width: 1000px;
-            border-radius: 12px;
-            max-height: 80vh;
-            overflow-y: auto;
-        }
-        .close { color: #aaa; float: right; font-size: 2em; font-weight: bold; cursor: pointer; }
+        .modal { display: none; position: fixed; z-index: 1000; inset: 0; background: rgba(0,0,0,0.8); overflow: auto; }
+        .modal-content { background: #1e2a44; margin: 5% auto; padding: 1.5cm; width: 90%; max-width: 1000px; border-radius: 12px; max-height: 80vh; overflow-y: auto; }
+        .close { float: right; font-size: 2em; cursor: pointer; color: #aaa; }
         .close:hover { color: white; }
 
-        /* Pencere İçinde Sayfa Modal */
-        .page-modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 50%; top: 50%;
-            transform: translate(-50%, -50%);
-            width: 90%;
-            max-width: 1000px;
-            height: 80vh;
-            background: #0f1b36;
-            border: 3px solid #0066cc;
-            border-radius: 12px;
-            box-shadow: 0 0 30px rgba(0, 102, 204, 0.6);
-            overflow: hidden;
-            transition: all 0.3s ease;
-        }
-        .page-modal.fullscreen {
-            left: 0; top: 0;
-            width: 100vw; height: 100vh;
-            max-width: none;
-            border-radius: 0;
-            border: none;
-            transform: none;
-        }
-        .page-modal-header {
-            background: #0066cc;
-            color: white;
-            padding: 0.4cm 0.8cm;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        .modal-controls {
-            display: flex;
-            gap: 0.5cm;
-            align-items: center;
-        }
-        .modal-btn {
-            background: rgba(255,255,255,0.2);
-            border: none;
-            color: white;
-            width: 36px; height: 36px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 1.4em;
-            font-weight: bold;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
+        .page-modal { display: none; position: fixed; z-index: 2000; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 90%; max-width: 1000px; height: 80vh; background: #0f1b36; border: 3px solid #0066cc; border-radius: 12px; box-shadow: 0 0 30px rgba(0,102,204,0.6); overflow: hidden; }
+        .page-modal.fullscreen { inset: 0; width: 100vw; height: 100vh; border: none; border-radius: 0; transform: none; }
+        .page-modal-header { background: #0066cc; color: white; padding: 0.4cm 0.8cm; display: flex; justify-content: space-between; align-items: center; font-weight: bold; }
+        .modal-controls { display: flex; gap: 0.5cm; }
+        .modal-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 36px; height: 36px; border-radius: 6px; cursor: pointer; font-size: 1.4em; font-weight: bold; display: flex; align-items: center; justify-content: center; }
         .modal-btn:hover { background: rgba(255,255,255,0.4); }
-        .page-modal-close { font-size: 1.6em; }
-        .page-modal iframe {
-            width: 100%;
-            height: calc(100% - 50px);
-            border: none;
-            background: white;
-        }
+        .page-modal iframe { width: 100%; height: calc(100% - 50px); border: none; }
 
-        .settings-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 1cm;
-            margin-top: 1cm;
-        }
-        .setting-item {
-            background: rgba(255,255,255,0.1);
-            padding: 0.8cm;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .setting-item input, .setting-item button {
-            width: 100%;
-            margin: 0.3cm 0;
-            padding: 0.4cm;
-            border: none;
-            border-radius: 4px;
-        }
-        .setting-item input { background: #333; color: white; }
+        .settings-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1cm; margin-top: 1cm; }
+        .setting-item { background: rgba(255,255,255,0.1); padding: 0.8cm; border-radius: 8px; text-align: center; }
+        .setting-item input[type="text"], .setting-item button { width: 100%; margin: 0.3cm 0; padding: 0.4cm; border: none; border-radius: 4px; }
+        .setting-item input[type="text"] { background: #333; color: white; }
         .setting-item button { background: #0066cc; color: white; cursor: pointer; }
         .setting-item button:hover { background: #0088ff; }
 
-        .load-export {
-            display: flex;
-            gap: 1cm;
-            margin-top: 1cm;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-        .load-export button, .load-export label {
-            padding: 0.5cm 1cm;
-            background: #0066cc;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            text-align: center;
-        }
+        .load-export { display: flex; gap: 1cm; margin-top: 1cm; justify-content: center; flex-wrap: wrap; }
+        .load-export button, .load-export label { padding: 0.5cm 1cm; background: #0066cc; color: white; border: none; border-radius: 6px; cursor: pointer; }
         .load-export label:hover, .load-export button:hover { background: #0088ff; }
-        .load-export input { display: none; }
-
-        .status {
-            text-align: center;
-            margin: 1cm 0;
-            font-size: 0.9em;
-            color: #a0d8ff;
-        }
+        .status { text-align: center; margin: 1cm 0; color: #a0d8ff; font-size: 0.9em; }
     </style>
 </head>
 <body>
@@ -236,23 +73,20 @@
             <div class="load-export">
                 <button id="saveToServerBtn">Sunucuya Kaydet</button>
                 <button id="exportBtn">JSON Dışa Aktar</button>
-                <label>
-                    <input type="file" id="loadFile" accept=".json">
-                    JSON Yükle
-                </label>
+                <label>JSON Yükle <input type="file" id="loadFile" accept=".json"></label>
             </div>
             <div class="settings-grid" id="settingsGrid"></div>
         </div>
     </div>
 
-    <!-- Pencere İçinde Sayfa Modal -->
+    <!-- Sayfa Modal -->
     <div id="pageModal" class="page-modal">
         <div class="page-modal-header">
             <span id="modalTitle">Panorama</span>
             <div class="modal-controls">
                 <button class="modal-btn" id="maximizeBtn" title="Ekranı Kapla">+</button>
                 <button class="modal-btn" id="fullscreenBtn" title="Tam Ekran">T</button>
-                <button class="modal-btn page-modal-close" id="pageCloseBtn">x</button>
+                <button class="modal-btn" id="pageCloseBtn">x</button>
             </div>
         </div>
         <iframe id="pageIframe" src=""></iframe>
@@ -263,87 +97,139 @@
         const SETTINGS_PATH = 'settings/360_settings.json';
         let settings = [];
 
-        // Varsayılan ayarlar
         function getDefaultSettings() {
             return Array.from({ length: TOTAL_CELLS }, (_, i) => ({
                 id: i + 1,
                 image: 'assets/360.png',
                 title: `Panorama ${i + 1}`,
-                url: 'pages/placeholder.html'
+                url: 'pages/placeholder.html',
+                folder: ''
             }));
         }
 
-        // Saat
         function updateDateTime() {
             const now = new Date();
-            const date = now.toLocaleDateString('tr-TR');
-            const time = now.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-            document.getElementById('datetime').innerText = `${time} - ${date}`;
+            document.getElementById('datetime').innerText = 
+                `${now.toLocaleTimeString('tr-TR', {hour: '2-digit', minute: '2-digit', second: '2-digit'})} - ${now.toLocaleDateString('tr-TR')}`;
         }
         setInterval(updateDateTime, 1000);
         updateDateTime();
 
-        // Grid Oluştur
         function renderGrid() {
             const grid = document.getElementById('grid');
             grid.innerHTML = '';
-            settings.forEach(item => {
+            settings.forEach((item, i) => {
                 const cell = document.createElement('div');
                 cell.className = 'grid-cell';
+                cell.dataset.index = i;
 
-                const img = document.createElement('img');
-                img.src = item.image;
-                img.alt = item.title;
-                cell.appendChild(img);
+                cell.innerHTML = `
+                    <img src="${item.image}" alt="${item.title}">
+                    <div class="cell-number">${item.id}</div>
+                    <div class="cell-title">${item.title}</div>
+                    ${item.folder ? `<div class="folder-name">${item.folder}</div>` : ''}
+                    <div class="upload-area">Sürükle veya Klasör Seç</div>
+                    <div class="progress-container"><div class="progress-bar"></div></div>
+                `;
 
-                const number = document.createElement('div');
-                number.className = 'cell-number';
-                number.innerText = item.id;
-                cell.appendChild(number);
+                const dropArea = cell.querySelector('.upload-area');
+                const progressBar = cell.querySelector('.progress-bar');
 
-                const title = document.createElement('div');
-                title.className = 'cell-title';
-                title.innerText = item.title;
-                cell.appendChild(title);
+                setupDropZone(dropArea, progressBar, i, cell);
 
-                const button = document.createElement('button');
-                button.className = 'share-button';
-                button.innerText = 'URL Paylaş';
-                button.onclick = function(e) {
-                    e.stopPropagation();
-                    const disp = cell.querySelector('.url-display');
-                    if (disp) {
-                        disp.remove();
-                        button.innerText = 'URL Paylaş';
-                    } else {
-                        const urlDisp = document.createElement('div');
-                        urlDisp.className = 'url-display';
-                        urlDisp.innerText = item.url;
-                        urlDisp.onclick = () => {
-                            navigator.clipboard.writeText(item.url).then(() => {
-                                alert('Kopyalandı: ' + item.url);
-                            });
-                        };
-                        cell.appendChild(urlDisp);
-                        button.innerText = 'Gizle';
-                    }
+                cell.onclick = e => {
+                    if (e.target.closest('.upload-area')) return;
+                    openPageModal(item.url, item.title);
                 };
-                cell.appendChild(button);
-
-                cell.onclick = () => openPageModal(item.url, item.title);
 
                 grid.appendChild(cell);
             });
         }
 
-        // Modal Kontrolleri
+        function setupDropZone(area, progressBar, index, cell) {
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(event => {
+                area.addEventListener(event, e => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            area.addEventListener('dragenter', () => area.classList.add('dragover'));
+            area.addEventListener('dragleave', () => area.classList.remove('dragover'));
+            area.addEventListener('drop', e => {
+                area.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length) uploadFolder(files, index, progressBar, cell);
+            });
+
+            area.onclick = () => {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.webkitdirectory = true;
+                input.onchange = e => {
+                    if (e.target.files.length) uploadFolder(e.target.files, index, progressBar, cell);
+                };
+                input.click();
+            };
+        }
+
+        async function uploadFolder(files, index, progressBar, cell) {
+            const formData = new FormData();
+            const folderName = files[0].webkitRelativePath.split('/')[0];
+            formData.append('folder', folderName);
+
+            for (let file of files) {
+                formData.append('files[]', file, file.webkitRelativePath);
+            }
+
+            progressBar.style.width = '0%';
+            cell.querySelector('.upload-area').innerText = 'Yükleniyor...';
+
+            try {
+                const xhr = new XMLHttpRequest();
+                xhr.open('POST', 'upload.php', true);
+
+                xhr.upload.onprogress = e => {
+                    if (e.lengthComputable) {
+                        const percent = (e.loaded / e.total) * 100;
+                        progressBar.style.width = percent + '%';
+                    }
+                };
+
+                xhr.onload = () => {
+                    const data = JSON.parse(xhr.responseText);
+                    if (data.success) {
+                        // Sadece klasör adını kaydet
+                        settings[index].folder = data.folder;
+                        cell.innerHTML = cell.innerHTML.replace(
+                            /<div class="folder-name">.*<\/div>/, 
+                            `<div class="folder-name">${data.folder}</div>`
+                        );
+                        if (!cell.querySelector('.folder-name')) {
+                            cell.insertAdjacentHTML('beforeend', `<div class="folder-name">${data.folder}</div>`);
+                        }
+
+                        saveToServer();
+                        progressBar.style.width = '100%';
+                        setTimeout(() => {
+                            progressBar.style.width = '0%';
+                            cell.querySelector('.upload-area').innerText = 'Sürükle veya Klasör Seç';
+                        }, 1000);
+                    } else {
+                        alert('Hata: ' + (data.errors?.join(', ') || 'Bilinmeyen'));
+                    }
+                };
+
+                xhr.send(formData);
+            } catch (err) {
+                alert('Yükleme hatası: ' + err.message);
+            }
+        }
+
+        // Sayfa Modal
         const pageModal = document.getElementById('pageModal');
         const pageIframe = document.getElementById('pageIframe');
         const modalTitle = document.getElementById('modalTitle');
-        const pageCloseBtn = document.getElementById('pageCloseBtn');
-        const maximizeBtn = document.getElementById('maximizeBtn');
-        const fullscreenBtn = document.getElementById('fullscreenBtn');
-
         let isMaximized = false;
 
         function openPageModal(url, title) {
@@ -352,106 +238,44 @@
             pageModal.style.display = 'block';
             document.body.style.overflow = 'hidden';
             isMaximized = false;
-            pageModal.classList.remove('fullscreen');
-            updateMaximizeButton();
-            updateFullscreenButton();
+            document.getElementById('maximizeBtn').innerHTML = '+';
         }
 
         function closePageModal() {
             pageModal.style.display = 'none';
             pageIframe.src = '';
             document.body.style.overflow = 'auto';
-            exitFullscreen();
+            if (document.fullscreenElement) document.exitFullscreen();
         }
 
-        function toggleMaximize() {
-            if (isMaximized) {
-                pageModal.style.width = '90%';
-                pageModal.style.maxWidth = '1000px';
-                pageModal.style.height = '80vh';
-                pageModal.style.left = '50%';
-                pageModal.style.top = '50%';
-                pageModal.style.transform = 'translate(-50%, -50%)';
-                isMaximized = false;
-            } else {
-                pageModal.style.width = '95%';
-                pageModal.style.maxWidth = 'none';
-                pageModal.style.height = '90vh';
-                pageModal.style.left = '50%';
-                pageModal.style.top = '50%';
-                pageModal.style.transform = 'translate(-50%, -50%)';
-                isMaximized = true;
-            }
-            updateMaximizeButton();
-        }
-
-        function updateMaximizeButton() {
-            maximizeBtn.innerHTML = isMaximized ? '-' : '+';
-            maximizeBtn.title = isMaximized ? 'Küçült' : 'Ekranı Kapla';
-        }
-
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                pageModal.requestFullscreen().catch(err => {
-                    alert(`Tam ekran hatası: ${err.message}`);
-                });
-            } else {
-                document.exitFullscreen();
-            }
-        }
-
-        function updateFullscreenButton() {
-            const isFs = !!document.fullscreenElement;
-            fullscreenBtn.innerHTML = isFs ? 'O' : 'T';
-            fullscreenBtn.title = isFs ? 'Tam Ekrandan Çık' : 'Tam Ekran';
-        }
-
-        function exitFullscreen() {
-            if (document.fullscreenElement) {
-                document.exitFullscreen();
-            }
-        }
-
-        // Butonlar
-        pageCloseBtn.onclick = closePageModal;
-        maximizeBtn.onclick = toggleMaximize;
-        fullscreenBtn.onclick = toggleFullscreen;
-
-        // Tam ekran değişimi
-        document.addEventListener('fullscreenchange', updateFullscreenButton);
-
-        // Esc ile kapat
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                if (document.fullscreenElement) {
-                    exitFullscreen();
-                } else if (pageModal.style.display === 'block') {
-                    closePageModal();
-                }
-            }
-        });
-
-        // Dışarı tıkla ile kapat
-        window.onclick = (e) => {
-            if (e.target === pageModal && !isMaximized && !document.fullscreenElement) {
-                closePageModal();
-            }
+        document.getElementById('maximizeBtn').onclick = () => {
+            isMaximized = !isMaximized;
+            pageModal.style.width = isMaximized ? '95%' : '90%';
+            pageModal.style.maxWidth = isMaximized ? 'none' : '1000px';
+            pageModal.style.height = isMaximized ? '90vh' : '80vh';
+            document.getElementById('maximizeBtn').innerHTML = isMaximized ? '-' : '+';
         };
+
+        document.getElementById('fullscreenBtn').onclick = () => {
+            if (!document.fullscreenElement) pageModal.requestFullscreen();
+            else document.exitFullscreen();
+        };
+
+        document.getElementById('pageCloseBtn').onclick = closePageModal;
+        document.addEventListener('fullscreenchange', () => {
+            document.getElementById('fullscreenBtn').innerHTML = document.fullscreenElement ? 'O' : 'T';
+        });
 
         // Ayarlar Modal
         const modal = document.getElementById('settingsModal');
-        const settingsBtn = document.getElementById('settingsBtn');
-        const closeBtn = document.querySelector('.modal .close');
-        const statusMsg = document.getElementById('statusMsg');
-
-        settingsBtn.onclick = () => {
+        document.getElementById('settingsBtn').onclick = () => {
             renderSettingsModal();
             modal.style.display = 'block';
         };
-        closeBtn.onclick = () => modal.style.display = 'none';
-        window.onclick = (e) => {
+        modal.querySelector('.close').onclick = () => modal.style.display = 'none';
+        window.onclick = e => {
             if (e.target === modal) modal.style.display = 'none';
-            if (e.target === pageModal && !isMaximized && !document.fullscreenElement) closePageModal();
+            if (e.target === pageModal && !isMaximized) closePageModal();
         };
 
         function renderSettingsModal() {
@@ -463,22 +287,17 @@
 
                 div.innerHTML = `
                     <div style="font-weight:bold; color:#a0d8ff;">#${item.id}</div>
-                    <input type="text" placeholder="Görsel URL" value="${item.image}">
-                    <input type="text" placeholder="Başlık" value="${item.title}">
-                    <input type="text" placeholder="Sayfa URL" value="${item.url}">
+                    <input type="text" placeholder="Görsel Yolu (örn: pages/klasor/resim.jpg)" value="${item.image}" id="img${i}">
+                    <input type="text" placeholder="Panorama Adı" value="${item.title}" id="title${i}">
+                    <input type="text" placeholder="Sayfa Yolu (örn: pages/klasor/index.html)" value="${item.url}" id="url${i}">
+                    ${item.folder ? `<div style="color:#a0d8ff; font-size:0.8em; margin:0.3cm 0;">Yüklü Klasör: <strong>${item.folder}</strong></div>` : ''}
                     <button>Kaydet</button>
                 `;
 
-                const inputs = div.querySelectorAll('input');
-                const btn = div.querySelector('button');
-                btn.onclick = () => {
-                    settings[i] = {
-                        id: item.id,
-                        image: inputs[0].value.trim() || 'assets/360.png',
-                        title: inputs[1].value.trim() || `Panorama ${item.id}`,
-                        url: inputs[2].value.trim() || 'pages/placeholder.html'
-                    };
-                    saveToLocalStorage();
+                div.querySelector('button').onclick = () => {
+                    settings[i].image = document.getElementById(`img${i}`).value.trim() || 'assets/360.png';
+                    settings[i].title = document.getElementById(`title${i}`).value.trim() || `Panorama ${item.id}`;
+                    settings[i].url = document.getElementById(`url${i}`).value.trim() || 'pages/placeholder.html';
                     saveToServer();
                     renderGrid();
                     alert(`#${item.id} kaydedildi!`);
@@ -488,7 +307,7 @@
             });
         }
 
-        // Sunucu & localStorage
+        // Sunucu & Local
         async function loadFromServer() {
             try {
                 const res = await fetch(SETTINGS_PATH + '?t=' + Date.now());
@@ -497,33 +316,29 @@
                     if (Array.isArray(data) && data.length === TOTAL_CELLS) {
                         settings = data;
                         saveToLocalStorage();
-                        statusMsg.innerHTML = '<span style="color:#28a745;">Sunucudan yüklendi.</span>';
+                        document.getElementById('statusMsg').innerHTML = '<span style="color:#28a745;">Sunucudan yüklendi.</span>';
                         renderGrid();
                         return true;
                     }
                 }
-            } catch (err) { console.log(err); }
+            } catch (e) {}
             return false;
         }
 
         async function saveToServer() {
             try {
-                const res = await fetch(SETTINGS_PATH, {
+                await fetch(SETTINGS_PATH, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(settings, null, 2)
                 });
-                statusMsg.innerHTML = res.ok 
-                    ? '<span style="color:#28a745;">Sunucuya kaydedildi.</span>'
-                    : '<span style="color:#ff6b6b;">PUT desteklenmiyor.</span>';
-            } catch (err) {
-                statusMsg.innerHTML = '<span style="color:#ffcc00;">Çevrimdışı.</span>';
-            }
+            } catch (e) {}
         }
 
         function saveToLocalStorage() {
             localStorage.setItem('360_settings', JSON.stringify(settings));
         }
+
         function loadFromLocalStorage() {
             const saved = localStorage.getItem('360_settings');
             if (saved) {
@@ -538,23 +353,19 @@
             return false;
         }
 
-        // Dışa aktar / Yükle
         document.getElementById('exportBtn').onclick = () => {
-            const data = JSON.stringify(settings, null, 2);
-            const blob = new Blob([data], { type: 'application/json' });
+            const blob = new Blob([JSON.stringify(settings, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = url;
-            a.download = '360_settings.json';
-            a.click();
+            a.href = url; a.download = '360_settings.json'; a.click();
             URL.revokeObjectURL(url);
         };
 
-        document.getElementById('loadFile').onchange = (e) => {
+        document.getElementById('loadFile').onchange = e => {
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = (ev) => {
+            reader.onload = ev => {
                 try {
                     const loaded = JSON.parse(ev.target.result);
                     if (Array.isArray(loaded) && loaded.length === TOTAL_CELLS) {
@@ -563,26 +374,20 @@
                         saveToServer();
                         renderGrid();
                         alert('Ayarlar yüklendi!');
-                    } else {
-                        alert('160 kutucuk olmalı.');
-                    }
-                } catch (err) {
-                    alert('JSON hatası: ' + err.message);
-                }
+                    } else alert('160 kutucuk olmalı.');
+                } catch (err) { alert('JSON hatası'); }
             };
             reader.readAsText(file);
         };
 
         document.getElementById('saveToServerBtn').onclick = saveToServer;
 
-        // Başlat
         async function init() {
             settings = getDefaultSettings();
             loadFromLocalStorage();
             await loadFromServer();
             renderGrid();
         }
-
         init();
     </script>
 </body>
