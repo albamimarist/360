@@ -151,10 +151,12 @@
             width: 36px; height: 36px;
             border-radius: 6px;
             cursor: pointer;
-            font-size: 1.1em;
+            font-size: 1.4em;
+            font-weight: bold;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: background 0.2s;
         }
         .modal-btn:hover { background: rgba(255,255,255,0.4); }
         .page-modal-close { font-size: 1.6em; }
@@ -248,8 +250,8 @@
         <div class="page-modal-header">
             <span id="modalTitle">Panorama</span>
             <div class="modal-controls">
-                <button class="modal-btn" id="maximizeBtn" title="Ekranı Kapla">maximize</button>
-                <button class="modal-btn" id="fullscreenBtn" title="Tam Ekran">full screen</button>
+                <button class="modal-btn" id="maximizeBtn" title="Ekranı Kapla">+</button>
+                <button class="modal-btn" id="fullscreenBtn" title="Tam Ekran">T</button>
                 <button class="modal-btn page-modal-close" id="pageCloseBtn">x</button>
             </div>
         </div>
@@ -352,6 +354,7 @@
             isMaximized = false;
             pageModal.classList.remove('fullscreen');
             updateMaximizeButton();
+            updateFullscreenButton();
         }
 
         function closePageModal() {
@@ -363,7 +366,6 @@
 
         function toggleMaximize() {
             if (isMaximized) {
-                // Normal boyuta dön
                 pageModal.style.width = '90%';
                 pageModal.style.maxWidth = '1000px';
                 pageModal.style.height = '80vh';
@@ -372,7 +374,6 @@
                 pageModal.style.transform = 'translate(-50%, -50%)';
                 isMaximized = false;
             } else {
-                // Ekranı kapla
                 pageModal.style.width = '95%';
                 pageModal.style.maxWidth = 'none';
                 pageModal.style.height = '90vh';
@@ -385,7 +386,7 @@
         }
 
         function updateMaximizeButton() {
-            maximizeBtn.innerHTML = isMaximized ? 'minimize' : 'maximize';
+            maximizeBtn.innerHTML = isMaximized ? '-' : '+';
             maximizeBtn.title = isMaximized ? 'Küçült' : 'Ekranı Kapla';
         }
 
@@ -399,6 +400,12 @@
             }
         }
 
+        function updateFullscreenButton() {
+            const isFs = !!document.fullscreenElement;
+            fullscreenBtn.innerHTML = isFs ? 'O' : 'T';
+            fullscreenBtn.title = isFs ? 'Tam Ekrandan Çık' : 'Tam Ekran';
+        }
+
         function exitFullscreen() {
             if (document.fullscreenElement) {
                 document.exitFullscreen();
@@ -410,12 +417,8 @@
         maximizeBtn.onclick = toggleMaximize;
         fullscreenBtn.onclick = toggleFullscreen;
 
-        // Tam ekran değişimi izle
-        document.addEventListener('fullscreenchange', () => {
-            const isFs = !!document.fullscreenElement;
-            fullscreenBtn.innerHTML = isFs ? 'full screen off' : 'full screen';
-            fullscreenBtn.title = isFs ? 'Tam Ekrandan Çık' : 'Tam Ekran';
-        });
+        // Tam ekran değişimi
+        document.addEventListener('fullscreenchange', updateFullscreenButton);
 
         // Esc ile kapat
         window.addEventListener('keydown', (e) => {
@@ -435,7 +438,7 @@
             }
         };
 
-        // Ayarlar Modal (değişmedi)
+        // Ayarlar Modal
         const modal = document.getElementById('settingsModal');
         const settingsBtn = document.getElementById('settingsBtn');
         const closeBtn = document.querySelector('.modal .close');
@@ -485,7 +488,7 @@
             });
         }
 
-        // Sunucu & localStorage (değişmedi)
+        // Sunucu & localStorage
         async function loadFromServer() {
             try {
                 const res = await fetch(SETTINGS_PATH + '?t=' + Date.now());
