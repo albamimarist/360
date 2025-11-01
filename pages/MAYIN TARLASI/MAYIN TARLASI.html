@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mayın Tarlası</title>
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #c0c0c0;
+        }
+        #game-container {
+            background-color: #c0c0c0;
+            border: 3px inset #ffffff;
+            padding: 10px;
+            margin-top: 20px;
+        }
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(10, 30px);
+            grid-gap: 1px;
+        }
+        .cell {
+            width: 30px;
+            height: 30px;
+            background: url('assets/closed.png') no-repeat center/cover;
+            border: 2px outset #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+        }
+        .cell.opened {
+            border: 1px solid #7b7b7b;
+            background: url('assets/opened.png') no-repeat center/cover;
+        }
+        .cell.mine {
+            background: url('assets/mine.png') no-repeat center/cover;
+        }
+        .cell.flagged {
+            background: url('assets/flag.png') no-repeat center/cover;
+        }
+        .cell.number-1 { background: url('assets/number1.png') no-repeat center/cover; }
+        .cell.number-2 { background: url('assets/number2.png') no-repeat center/cover; }
+        .cell.number-3 { background: url('assets/number3.png') no-repeat center/cover; }
+        .cell.number-4 { background: url('assets/number4.png') no-repeat center/cover; }
+        .cell.number-5 { background: url('assets/number5.png') no-repeat center/cover; }
+        .cell.number-6 { background: url('assets/number6.png') no-repeat center/cover; }
+        .cell.number-7 { background: url('assets/number7.png') no-repeat center/cover; }
+        .cell.number-8 { background: url('assets/number8.png') no-repeat center/cover; }
+        #status {
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        #reset-button {
+            margin-bottom: 10px;
+            padding: 5px 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="status">Kalan Mayın: 10</div>
+        <button id="reset-button">😊 Yeni Oyun</button>
+        <div id="game-board"></div>
+    </div>
+
+    <script>
+        const GRID_SIZE = 10;
+        const MINE_COUNT = 10;
+        let board = [];
+        let minePositions = [];
+        let gameOver = false;
+        let firstClick = true;
+
+        const gameBoard = document.getElementById('game-board');
+        const statusText = document.getElementById('status');
+        const resetButton = document.getElementById('reset-button');
+
+        function initializeBoard() {
+            board = [];
+            gameBoard.innerHTML = '';
+            for (let i = 0; i < GRID_SIZE; i++) {
+                board[i] = [];
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    board[i][j] = {
+                        isMine: false,
+                        isOpened: false,
+                        isFlagged: false,
+                        adjacentMines: 0
+                    };
+                    const cell = document.createElement('div');
+                    cell.classList.add('cell');
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    cell.addEventListener('click', handleCellClick);
+                    cell.addEventListener('contextmenu', handleRightClick);
+                    gameBoard.appendChild(cell);
+                }
+            }
+        }
+
+        function placeMines(excludeRow, excludeCol) {
+            minePositions = [];
+            while (minePositions.length < MINE_COUNT) {
+                const row = Math.floor(Math.random() * GRID_SIZE);
+                const col = Math.floor(Math.random() * GRID_SIZE);
+                if (row !== excludeRow || col !== excludeCol) {
+                    const position = `${row},${col}`;
+                    if (!minePositions.includes(position)) {
+                        minePositions.push(position);
+                        board[row][col].isMine = true;
+                    }
+                }
+            }
+            calculateAdjacentMines();
+        }
+
+        function calculateAdjacentMines() {
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (board[i][j].isMine) continue;
+                    let count = 0;
+                    for (let di = -1; di <= 1; di++) {
+                        for (let dj = -1; dj <= 1; dj++) {
+                            if (di === 0 && dj === 0) continue;
+                            const ni = i + di;
+                            const nj = j + dj;
+                            if (ni >= 0 && ni < GRID_SIZE && nj >= 0 && nj < GRID_SIZE) {
+                                if (board[ni][nj].isMine) count++;
+                            }
+                        }
+                    }
+                    board[i][j].adjacentMines = count;
+                }
+            }
+        }
+
+        function handleCellClick(event) {
+            if (gameOver) return;
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            if (board[row][col].isFlagged || board[row][col].isOpened) return;
+
+            if (firstClick) {
+                placeMines(row, col);
+                firstClick = false;
+            }
+
+            if (board[row][col].isMine) {
+                revealMines();
+                gameOver = true;
+                statusText.textContent = 'Oyun Bitti! Kaybettiniz!';
+                resetButton.textContent = '😣 Yeni Oyun';
+                return;
+            }
+
+            openCell(row, col);
+            checkWin();
+        }
+
+        function handleRightClick(event) {
+            event.preventDefault();
+            if (gameOver) return;
+            const row = parseInt(event.target.dataset.row);
+            const col = parseInt(event.target.dataset.col);
+            if (board[row][col].isOpened) return;
+
+            board[row][col].isFlagged = !board[row][col].isFlagged;
+            event.target.classList.toggle('flagged');
+            updateMineCount();
+        }
+
+        function openCell(row, col) {
+            if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+            if (board[row][col].isOpened || board[row][col].isFlagged) return;
+
+            board[row][col].isOpened = true;
+            const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+            cell.classList.add('opened');
+            if (board[row][col].adjacentMines > 0) {
+                cell.classList.add(`number-${board[row][col].adjacentMines}`);
+            } else {
+                for (let di = -1; di <= 1; di++) {
+                    for (let dj = -1; dj <= 1; dj++) {
+                        openCell(row + di, col + dj);
+                    }
+                }
+            }
+        }
+
+        function revealMines() {
+            minePositions.forEach(pos => {
+                const [row, col] = pos.split(',').map(Number);
+                const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                cell.classList.add('mine');
+            });
+        }
+
+        function updateMineCount() {
+            const flaggedCount = board.flat().filter(cell => cell.isFlagged).length;
+            statusText.textContent = `Kalan Mayın: ${MINE_COUNT - flaggedCount}`;
+        }
+
+        function checkWin() {
+            let openedCount = 0;
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (board[i][j].isOpened) openedCount++;
+                }
+            }
+            if (openedCount === GRID_SIZE * GRID_SIZE - MINE_COUNT) {
+                gameOver = true;
+                statusText.textContent = 'Tebrikler! Kazandınız!';
+                resetButton.textContent = '😊 Yeni Oyun';
+            }
+        }
+
+        resetButton.addEventListener('click', () => {
+            gameOver = false;
+            firstClick = true;
+            statusText.textContent = 'Kalan Mayın: 10';
+            resetButton.textContent = '😊 Yeni Oyun';
+            initializeBoard();
+        });
+
+        initializeBoard();
+    </script>
+</body>
+</html>
